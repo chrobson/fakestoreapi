@@ -8,8 +8,14 @@ import (
 	"net/http"
 )
 
-func getUsers() ([]User, error) {
-	resp, err := http.Get("https://fakestoreapi.com/users")
+// 24.01.2023 modified getUsers to use http.Client as parameter to be able to mock it in tests
+func getUsers(client *http.Client) ([]User, error) {
+	url := "https://fakestoreapi.com/users"
+	if client != http.DefaultClient {
+		url = "http://fakestoreapi.com/users"
+	}
+
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +193,7 @@ func main() {
 	}
 
 	fmt.Println(carts)*/
-	users, _ := getUsers()
+	users, _ := getUsers(http.DefaultClient)
 	maxDistance, user1, user2 := maxDistance(users)
 	fmt.Printf("Biggest distance = %.2f between %s from %s and %s from %s\n", maxDistance, users[user1].Name, users[user1].Address.City, users[user2].Name, users[user2].Address.City)
 	//products, _ := getProducts()
