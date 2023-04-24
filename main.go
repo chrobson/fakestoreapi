@@ -7,6 +7,8 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"sync"
+	"time"
 )
 
 // 24.01.2023 modified getUsers to use http.Client as parameter to be able to mock it in tests
@@ -178,18 +180,48 @@ func maxDistance(users []User) (float64, int, int) {
 }
 
 func main() {
-	users, err := getUsers(http.DefaultClient)
-	if err != nil {
-		log.Fatal(err)
-	}
+	start := time.Now()
+	var users []User
+	var products []Product
+	var carts []Cart
+	errChan := make(chan error)
 
-	products, err := getProducts(http.DefaultClient)
-	if err != nil {
-		log.Fatal(err)
-	}
+	var wg sync.WaitGroup
+	wg.Add(3)
+	//using goroutines to get data from 3 endpoints improved the performance by ~ 50%
+	go func() {
+		defer wg.Done()
+		var err error
+		users, err = getUsers(http.DefaultClient)
+		if err != nil {
+			errChan <- err
+		}
+	}()
 
-	carts, err := getCarts()
-	if err != nil {
+	go func() {
+		defer wg.Done()
+		var err error
+		products, err = getProducts(http.DefaultClient)
+		if err != nil {
+			errChan <- err
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		var err error
+		carts, err = getCarts()
+		if err != nil {
+			errChan <- err
+		}
+	}()
+
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	for err := range errChan {
 		log.Fatal(err)
 	}
 
@@ -203,4 +235,5 @@ func main() {
 	maxDistance, user1, user2 := maxDistance(users)
 	fmt.Printf("Biggest distance = %.2f between %s from %s and %s from %s\n", maxDistance, users[user1].Name, users[user1].Address.City, users[user2].Name, users[user2].Address.City)
 
+	fmt.Println("Time taken:", time.Since(start))
 }
