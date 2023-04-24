@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math"
 	"net/http"
 )
@@ -36,8 +37,12 @@ func getUsers(client *http.Client) ([]User, error) {
 	return users, nil
 }
 
-func getProducts() ([]Product, error) {
-	resp, err := http.Get("https://fakestoreapi.com/products")
+func getProducts(client *http.Client) ([]Product, error) {
+	url := "https://fakestoreapi.com/products"
+	if client != http.DefaultClient {
+		url = "http://fakestoreapi.com/users"
+	}
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -173,36 +178,29 @@ func maxDistance(users []User) (float64, int, int) {
 }
 
 func main() {
-	/* 	users, err := getUsers()
-	   	if err != nil {
-	   		log.Fatal(err)
-	   	}
-
-	   	fmt.Println(users)
-	   	fmt.Println("_________________________________________________________")
-	products, err := getProducts()
+	users, err := getUsers(http.DefaultClient)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(products)
+	products, err := getProducts(http.DefaultClient)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	carts, err := getCarts()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(carts)*/
-	users, _ := getUsers(http.DefaultClient)
-	maxDistance, user1, user2 := maxDistance(users)
-	fmt.Printf("Biggest distance = %.2f between %s from %s and %s from %s\n", maxDistance, users[user1].Name, users[user1].Address.City, users[user2].Name, users[user2].Address.City)
-	//products, _ := getProducts()
-	//carts, _ := getCarts()
-	/*categoryValues := getCategoryValues(products)
+	categoryValues := getCategoryValues(products)
 	fmt.Println("Category values:", categoryValues)
 
 	highestValueCart, highestValue, _ := findHighestValueCart(carts, products)
 	highestValueOwner := users[highestValueCart.UserID-1]
 	fmt.Printf("Highest value cart id: %v (Value: %.2f, Owner name: %s Owner username: %s)\n", highestValueCart.ID, highestValue, highestValueOwner.Name, highestValueOwner.Username)
-	*/
+
+	maxDistance, user1, user2 := maxDistance(users)
+	fmt.Printf("Biggest distance = %.2f between %s from %s and %s from %s\n", maxDistance, users[user1].Name, users[user1].Address.City, users[user2].Name, users[user2].Address.City)
+
 }
